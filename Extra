@@ -1,0 +1,290 @@
+⚠️ Antes de começar
+
+Certifique-se de possuir uma cópia da chave de recuperação de 48 dígitos.
+
+Não faça esta configuração sem possuir um método de recuperação.
+
+A chave de recuperação é o seu mecanismo de emergência caso o computador não consiga utilizar o TPM ou a Startup Key.
+
+1. Verificar o BitLocker
+
+Abra o CMD ou PowerShell como Administrador.
+
+Execute:
+
+manage-bde -status C:
+
+Procure informações semelhantes a:
+
+Volume C:
+Conversão: 100%
+Proteção: Ativada
+
+Também podemos verificar os protetores existentes:
+
+manage-bde -protectors -get C:
+2. Preparar o pendrive
+
+Conecte o pendrive ao computador.
+
+Abra:
+
+Este Computador
+
+e identifique a letra atribuída ao dispositivo.
+
+Exemplo:
+
+C: = Windows
+E: = Pendrive
+
+Neste tutorial utilizaremos E: como exemplo.
+
+⚠️ A letra do seu pendrive pode ser diferente.
+
+3. Configurar a política do BitLocker
+
+Em algumas configurações do Windows, a utilização de uma Startup Key pode estar bloqueada por política.
+
+Pressione:
+
+Win + R
+
+Digite:
+
+gpedit.msc
+
+Navegue até:
+
+Configuração do Computador
+    └── Modelos Administrativos
+        └── Componentes do Windows
+            └── Criptografia de Unidade de Disco BitLocker
+                └── Unidades do Sistema Operacional
+
+Abra:
+
+Exigir autenticação adicional na inicialização
+
+Configure a política para:
+
+Habilitado
+
+Verifique se as opções relacionadas à utilização de chave de inicialização estão permitidas.
+
+Clique em:
+
+Aplicar
+OK
+
+Depois abra um terminal como administrador e execute:
+
+gpupdate /force
+4. Adicionar o pendrive como Startup Key
+
+Com o pendrive conectado, execute:
+
+manage-bde -protectors -add C: -TPMAndStartupKey E:
+
+Onde:
+
+C:
+
+é a unidade protegida pelo BitLocker.
+
+E:
+
+E:
+
+é a unidade do pendrive.
+
+5. Arquivo .BEK
+
+Após executar o comando, o Windows cria uma chave de inicialização no pendrive.
+
+Ela possui normalmente um nome semelhante a:
+
+XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX.BEK
+
+Exemplo:
+
+8C0BE033-1C7F-49E8-88AA-D1FA46A1E703.BEK
+
+Esse arquivo é a Startup Key do BitLocker.
+
+🔴 NÃO compartilhe esse arquivo.
+
+🔴 NÃO publique o arquivo .BEK no GitHub.
+
+🔴 NÃO coloque o arquivo em um repositório público ou privado.
+
+6. Verificar o protetor
+
+Execute novamente:
+
+manage-bde -protectors -get C:
+
+Deverá aparecer algo semelhante a:
+
+TPM e Chave de Inicialização
+
+Isso indica que o BitLocker possui um protetor utilizando:
+
+TPM + Startup Key
+7. Verificar o status
+
+Execute:
+
+manage-bde -status C:
+
+Um resultado esperado pode ser semelhante a:
+
+Volume C:
+Tamanho: ...
+Versão do BitLocker: 2.0
+
+Status da Conversão:
+    Apenas Espaço Usado Criptografado
+
+Porcentagem Criptografada:
+    100%
+
+Método de Criptografia:
+    XTS-AES 128
+
+Proteção:
+    Ativada
+
+Protetores:
+    Senha Numérica
+    TPM e Chave de Inicialização
+8. Testar a chave USB
+
+Agora vem a parte mais importante.
+
+Teste 1 — Pendrive conectado
+Desligue o computador.
+Mantenha o pendrive conectado.
+Ligue o computador.
+
+O BitLocker deverá conseguir utilizar a Startup Key.
+
+Teste 2 — Pendrive removido
+Desligue o computador.
+Remova o pendrive.
+Ligue novamente.
+
+O BitLocker não deverá conseguir utilizar a Startup Key.
+
+Dependendo da configuração, ele poderá solicitar a:
+
+Chave de recuperação do BitLocker
+
+Digite a chave de recuperação de 48 dígitos caso seja necessário.
+
+9. Backup da chave de recuperação
+
+A Startup Key .BEK e a chave de recuperação são coisas diferentes.
+
+.BEK
+│
+└── Startup Key
+    Utilizada durante a inicialização
+
+
+Chave de recuperação
+│
+└── 48 dígitos
+    Utilizada para recuperação
+
+É altamente recomendado manter uma cópia da chave de recuperação em outro local seguro.
+
+Por exemplo:
+
+Outro pendrive
+Computador secundário
+Armazenamento seguro
+Impressão física
+
+Não mantenha a única cópia no mesmo pendrive usado como Startup Key.
+
+10. Fazer backup do arquivo .BEK
+
+Também é possível manter uma cópia do .BEK em outro dispositivo.
+
+Primeiro localize o arquivo:
+
+Get-ChildItem E:\ -Force -Recurse -Filter "*.BEK"
+
+Exemplo:
+
+E:\8C0BE033-1C7F-49E8-88AA-D1FA46A1E703.BEK
+
+Crie uma pasta de backup em outro dispositivo:
+
+New-Item -ItemType Directory -Path "F:\Backup-BitLocker" -Force
+
+Copie o arquivo:
+
+Copy-Item "E:\8C0BE033-1C7F-49E8-88AA-D1FA46A1E703.BEK" "F:\Backup-BitLocker\" -Force
+
+Você pode verificar se os arquivos são idênticos utilizando SHA-256:
+
+Get-FileHash "E:\8C0BE033-1C7F-49E8-88AA-D1FA46A1E703.BEK" -Algorithm SHA256
+
+E:
+
+Get-FileHash "F:\Backup-BitLocker\8C0BE033-1C7F-49E8-88AA-D1FA46A1E703.BEK" -Algorithm SHA256
+
+Os hashes devem ser iguais.
+
+❌ Erro 0x80310062
+
+Durante a configuração pode aparecer:
+
+0x80310062
+
+Esse erro está relacionado à política do BitLocker que não permite a utilização de uma Startup Key.
+
+A solução é verificar a política:
+
+Configuração do Computador
+→ Modelos Administrativos
+→ Componentes do Windows
+→ Criptografia de Unidade de Disco BitLocker
+→ Unidades do Sistema Operacional
+→ Exigir autenticação adicional na inicialização
+
+Depois de alterar a política:
+
+gpupdate /force
+
+Tente novamente:
+
+manage-bde -protectors -add C: -TPMAndStartupKey E:
+🧪 Verificação final
+
+Execute:
+
+manage-bde -protectors -get C:
+
+O resultado deverá conter:
+
+TPM e Chave de Inicialização
+
+E:
+
+manage-bde -status C:
+
+deve indicar:
+
+Proteção: Ativada
+🔐 Segurança
+Nunca faça upload destes arquivos:
+*.BEK
+
+ou:
+
+Chave de recuperação do BitLocker
+
+O arquivo .BEK é uma credencial de segurança real.
