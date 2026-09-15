@@ -1,0 +1,68 @@
+1. Requisitos
+
+Windows 10/11 com BitLocker
+TPM
+Pendrive USB
+Acesso de administrador
+
+2. Verificar o BitLocker
+
+manage-bde -status C:
+
+3. Verificar os protetores existentes
+
+manage-bde -protectors -get C:
+
+4. Configurar a política do BitLocker
+
+No gpedit.msc:
+
+Configuração do Computador
+→ Modelos Administrativos
+→ Componentes do Windows
+→ Criptografia de Unidade de Disco BitLocker
+→ Unidades do Sistema Operacional
+→ Exigir autenticação adicional na inicialização
+
+Habilitar a política e permitir chave de inicialização.
+
+Depois:
+
+gpupdate /force
+
+5. Conectar o pendrive
+
+Supondo que ele seja E::
+
+manage-bde -protectors -add C: -TPMAndStartupKey E:
+
+O Windows cria automaticamente o arquivo .BEK no pendrive.
+
+6. Conferir
+
+manage-bde -protectors -get C:
+
+Deve aparecer:
+
+TPM e Chave de Inicialização
+
+7. Testar
+
+Desligar o computador e testar:
+
+🔑 Pendrive conectado → Windows inicia.
+❌ Pendrive removido → BitLocker exige recuperação.
+
+8. Fazer backup
+
+Explicar a diferença entre:
+
+.BEK
+↓
+Chave usada na inicialização
+
+e
+
+Chave de recuperação de 48 dígitos
+↓
+Método de recuperação
